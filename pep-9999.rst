@@ -1,7 +1,7 @@
 PEP: 9999
-Title: Including Software Bill of Materials in Wheels
-Author: Jeff Edwards <jeffe@amazon.com>,
-        Dustin Ingram <di@python.org>
+
+Title: Software Bills of Materials for the Simple Repository API
+Author: Jeff Edwards <jeffe@amazon.com>, Dustin Ingram <di@python.org>
 Sponsor: Brett Cannon <brett at python.org>
 PEP-Delegate: TBD
 Discussions-To: TBD
@@ -14,67 +14,69 @@ Created: 03-May-2022
 Abstract
 ========
 
-This is a specification for the method for optional inclusion of one or more
-Software Bill of Materials (SBOMs) into wheel distributions to offer more
-thorough provenance tracking which notably would allow for attestations about
-the source used to build the artifacts.
+This is a specification for presenting and serving one or more optional
+software bill of materials (SBOMs) for a given artifact record in the
+`PEP-503 <https://peps.python.org/pep-0503>` "simple" repository API.
+
 
 Motivation
 ==========
 
 One of the many hurdles towards building a more secure software supply chain is
-a lack of standardized metadata about the sources used to both build and test an
-installable artifact. This is especially problematic for wheels including but
-not limited to:
+a lack of standardized programming-language-agnostic metadata that describes
+the both the contents of a distribution and, for packages bundling or vendoring
+dependencies, attestations about those internal dependencies.  Examples 
+where there is a notable gap in knowledge:
 
--  Projects that build binary extensions (e.g. C/Rust extensions)
+-  Projects that statically build binary extensions which include
+   external projects (e.g. C/Rust extensions)
 
 -  Projects that vendor software from outside the Python ecosystem (e.g.
-   ``numpy`` includes ``libgfortran``, ``cryptography`` includes ``openssl`` and
-   Rust projects)
+   ``numpy`` includes ``libgfortran``, ``cryptography`` includes ``openssl``)
 
--  Projects that vendor other Python projects for stability, portability, and/or
-   reproducibility (e.g. ``setuptools`` includes a vendored copy of
-   ``packaging``)
+-  Projects that vendor other Python projects for stability, portability,
+   and/or reproducibility (e.g. ``setuptools`` includes a vendored copy of
+   ``packaging`` as well as other separately-maintained packages)
 
-In all of these cases, while a wheel already includes a manifest and checksums
-of the installable artifacts, it does not have a representation of the
-authoritative sources for those artifacts, losing any authoritative context
-around vendored Python projects and completely obfuscating the sources used for
-native binaries. This lack of standardized transparency becomes clear once a
-risk or vulnerability is found for a vendored dependency, where the lack of
-transparency makes it difficult if not impossible to know if your software is
-transitively vulnerable as a result.
+While the completeness of such metadata cannot be guaranteed to be accurate
+as much of the metadata is likely to be attested to by the build process
+itself which could arbitrarily omit relevant external references, it does
+provide an ability to both verify the contents and, alongside the usage of a
+signing mechanism such as SigStore, allow for significantly more fidelity 
+when assessing the provenance and supply chain.
 
-A Software Bill of Materials (SBOM) describes a type of metadata format to
-record these missing annotations in order to bridge this gap. The goals of this
-PEP are:
-
-#. To codify where and how SBOMs should be included within a Wheel to ensure a
-   consistent lookup for consumers
-
-#. To define a location and default SBOM format -- SPDX 2, JSON format -- to
-   centralize ecosystem efforts around generating, ingesting, and verifying an
-   artifact's SBOM within the ecosystem.
+For example, this would allow for ``cryptography`` to include metadata about 
+both the Rust Packages and sources alongside the specific version of OpenSSL
+that is bundled into its binary wheels.  If a vulnerability is found in one of
+these bundled packages, both ``cryptography`` and its consumers are then able 
+to identify if they could potentially be transitively vulnerable.
 
 
 Rationale
 =========
 
-Why is this limited to wheels?
-------------------------------
+Why support multiple SBOM specifications?
+-----------------------------------------
 
-Wheels are the current standard for pre-built artifacts, where all dependencies
-are either left to the installer of the wheel to resolve, download and install
-or are already included within the wheel itself.
+Specifications for this type of metadata may be superceded in the future and
+specific industries may have restrictions or requirements where our choice may
+not fully cover their requirements or existing SBOM infrastructure. Giving an
+extensible way to include SBOMs allows for both internal and external
+repositories to cater to those specific needs without customized logic and for
+changes to the intended default to not hard-require the ecosystem to migrate
+simultaneously.
 
-Source distributions are specifically not included since they may use an
-arbitrary build system and build script which can download, install, and
-subsequently vendor artifacts from other projects in a non-deterministic way, so
-any SBOM included could not be reliably complete without additional measures.
+
+Why should this be in Simple Repositories?
+------------------------------------------
+
+Signing mechanisms such as SigStore require an authoritative URL of record for
+any signed artifact.  Similar to `PEP-658 <https://peps.python.org/pep-0658>`,
+it describes metadata about the artifact itself and so for readability and
+simplicity, they are predefined suffixes on the artifact link itself.
 
 
-Why does the SBOM not include external dependencies?
+Why does an SBOM not include external dependencies?
 ----------------------------------------------------
 
 Because wheels are used to distribute libraries, not applications, their
@@ -90,109 +92,22 @@ included in the artifact, and thus will be present in the environment which the
 wheel is installed into.
 
 
-Why support multiple SBOM specifications?
------------------------------------------
-
-Specifications for this type of metadata may be superceded in the future and
-specific industries may have restrictions or requirements where our choice may
-not fully cover their requirements or existing SBOM infrastructure. Giving an
-extensible way to include SBOMs allows for both internal and external
-repositories to cater to those specific needs without customized logic and for
-changes to the intended default to not hard-require the ecosystem to migrate
-simultaneously.
-
-
-Why should we recommend a default?
-----------------------------------
-
-Unifying expectations around generation, consumption, and verification of the
-relevant SBOM help limit the initial scope of the necessary support and tools
-written to fill these needs. This focuses the effort around a single target and
-accelerates development while establishing a common practice.
-
-
-Why SPDX 2?
------------
-
-Many factors were considered when choosing the specification including its
-status in the open source community, governance, breadth of supported use-cases,
-established history of maintainability, and these same factors for any
-specifications it includes by default. SPDX 2 had the largest set of features
-and annotations with a clear specification with a long history as well as
-existing tooling.
-
-
-Why JSON?
----------
-
-JSON has a performant standard-library implementation and remains a standard of
-near-universal interoperability between languages. It also lowers the burden of
-both custom parsing logic and additional dependencies, which lowers the overhead
-for any build-system plugins built to automatically generate, validate, or
-consume the SBOM.
-
-
 Specification
 ==============
 
-This adds an optional ``sboms`` directory into the existing
-``<distribution_identifier>.dist-info`` subdirectory within the wheel where
-SBOMS can be found generically, with the current common standard location
-defined for `SPDX version 2.* - JSON format
-<https://spdx.github.io/spdx-spec/>`_t located at ``spdx-2.json``. Example
-destination:
+This add a new optional attribute for artifact anchor tags `data-sboms` which
+is defined as a comma-separated list of 
+`normalized <https://peps.python.org/pep-0503/#normalized-names>` available
+SBOM ``<specification>.<format>`` for the artifact.  The relevant SBOM for each member of the listed
+is found at ``<artifact>.sbom.<specification>.<format>``.
 
-``myproject-0.1.0.dist-info/sboms/spdx-2.json``
+The following SBOM specification formats are predefined as examples:
 
-SBOMs should have an entry for each of the files included within the wheel
-itself, excluding the ``sboms`` directory and contents where the SBOM format
-specifically recommends or requires it, such as during combined checksum
-calculations for package contents or for the checksum on the SBOM itself. In
-addition, wherever possible, it should also include either references and/or
-inclusion of any SBOMs that might be generated by other build tools that
-describe artifacts within your wheel. This includes but is not limited to:
-
--  SBOMs for packages distributed inside of the wheel including any bundled
-   dependencies
--  SBOMs generated by package managers for other ecosystems such as NPM/Yarn for
-   JavaScript, Cargo for Rust, or otherwise
--  Any external C dependencies that are bundled as static or dynamic libraries
-   or are statically built into any shared objects that the wheel includes
-
-
-Automated versus Manual Annotation
-----------------------------------
-
-As long as the portability of Python packages allows for a simple copy-paste of
-source to replicate behaviors -- a feature, not a bug, of open source
-development -- automated annotations can only at-best approximate what artifacts
-both should and should not also include external references or SBOMs with a
-potential exception in any place where the build system itself is not directly
-tracking and mediating that relationship. However, because many of the fields
-are directly computable from inputs and outputs (e.g. file manifests and
-checksums), automated generation has a large role to play in filling in those
-details ergonomically as part of a build and publishing process. To that end,
-any build-systems plugins for automated SBOM generation should keep that use
-case mind during development and plan for interface(s) for to enrich its
-generated metadata with externally-supplied metadata whether from a user or from
-another more-authoritative or context-rich source.
-
-For example, a ``setuptools-spdx`` plugin for autogenerating an SPDX SBOM during
-a setuptools build process should plan for an interface that other plugins such
-as ``setuptools-rust`` or ``setuptools-npm`` could include SBOM metadata for any
-compiled or bundled objects as an output of their build processes alongside
-their artifacts. Similarly, it should likely also allow for automated and
-instrumented build infrastructure to also supply append/enrich that metadata
-with relevant details, such as actual origin metadata when including packages
-through an instrumented repository or github proxy.
-
-
-Backwards Compatibility
-=======================
-
-SBOM metadata is an optional component and therefore may be omitted. Any hard
-requirement on including an SBOM or a specific SBOM type in a wheel is left to
-repository owners to enforce and manage.
+- cyclonedx.json
+- cyclonedx.xml
+- spdx2.yaml
+- spdx2.json
+- spdx2.rdf
 
 
 Security Implications
@@ -230,8 +145,8 @@ the wheel, it's metadata, or it's build process that describes where this
 software came from.
 
 Using SBOMs provides a means for recording the source of these types of external
-dependencies often included in wheels. Including an SBOM in a wheel allows this
-record to live alongside the software it describes.
+dependencies for both Wheels and source distributions and storing them alongside
+the artifacts 
 
 
 Reference Implementation
@@ -244,22 +159,32 @@ proof-of-concept.]
 Rejected Ideas
 ==============
 
-Separated metadata specifier ``sboms/_index_.json``
----------------------------------------------------
+Including the SBOMs in the artifacts themselves
+-----------------------------------------------
 
-This is the most reasonable alternate implementation, but it does require any
-readers and writers to understand a separate metadata file format and defining
-and maintaining a necessary expected field list for those records instead of
-relying upon official standardized locations. In the interest of simplicity,
-this chooses to standardize the expected locations instead of having metadata
-about metadata.
+SBOMs are a record to support provenance tracking systems with more details
+about an artifact, both of which may or may not be signed by the author and/or
+build-provider.  However because most SBOM formats require completeness in
+the form of a full and verifiable manifest (usually in the form of a hash
+tree), they require a special flag to signify the SBOM themself to keep from
+requiring a separate hash of its own contents from causing a circular
+hashing issue (i.e. including the hash of for itself will change the hash of
+its contents).  As such, if SBOMs are produced in multiple formats for the same
+artifact, then including both within the artifact only adds additional areas
+for collision and complexity.  
+
+In addition, SBOMs can be verbose, potentially containing a large number of
+attestations and records for a package whos resulting artifact is quite small.
+For example, a package that utilizes an existing Rust framework may need to
+annotate between 10-100+ entries for all of the Rust packages brought in and
+compiled, even if the resulting stripped binary is notably small.  Keeping the 
+SBOMs in their own separate resources allows it to be decoupled from
+downloading the necessary artifact, allowing for a cleaner separation of
+concerns for package managers and security processes.
 
 
 Open Issues
 ===========
-
-Will this be potentially too much bloat? Should it be separate?
----------------------------------------------------------------
 
 **Up for discussion**
 
