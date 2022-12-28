@@ -82,8 +82,10 @@ An example of the structure for the ``vulnerabilities`` field:
 
 For this field, the key (vulnerability ID) MUST be unique, and MUST take the
 form of the `OSV ID field
-<https://ossf.github.io/osv-schema/#id-modified-fields>`__. The vulnerability
-ID prefix MUST be ``PYSEC-``.
+<https://ossf.github.io/osv-schema/#id-modified-fields>`__. If a ``PYSEC-``
+prefixed identifier is available for a given vulnerability, this ID should be
+preferred as the primary vulnerability identifier, and other identifiers should
+be added to the ``aliases`` field.
 
 The dictionary corresponding to that key MUST take the form of the `Open Source
 Vulnerabilty format (v. 1.3.1) <https://ossf.github.io/osv-schema/>`__.
