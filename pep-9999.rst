@@ -182,6 +182,14 @@ type when specifying versions.
 FAQ
 ===
 
+How should mirrors support this specification?
+----------------------------------------------
+
+Mirrors MAY provide support for this specification. If a mirror is
+redistributing distribution files from a public index like PyPI with
+vulnerability data available, it SHOULD provide corresponding vulnerability
+data as well.
+
 Why not add this data to the HTML API as well?
 ----------------------------------------------
 
