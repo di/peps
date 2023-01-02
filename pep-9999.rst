@@ -192,8 +192,8 @@ begin with the ``PYSEC-`` prefix when an ID with that prefix is available. When
 a ``PYSEC-`` prefixed identifier is available, all other identifiers with non
 ``PYSEC-`` prefixes should be included in the ``aliases`` field.
 
-SemVer should not be used
--------------------------
+Semantic Versioning (SemVer) type should not be used
+----------------------------------------------------
 
 The OSV schema provides support for event types that specify `SemVer
 <https://semver.org/>`__ versions and version ranges. However, because the
