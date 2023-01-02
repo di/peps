@@ -127,7 +127,7 @@ the ``affected[].ranges[].events`` field of the `OSV specification
 specific affected version in question.
 
 The purpose of this field is to provide consumers with the information
-necessary to provide a consise upgrade path to mitigate a given vulnerability,
+necessary to provide a concise upgrade path to mitigate a given vulnerability,
 without requiring API producers to provide the entire set of events that may be
 present in the OSV schema.
 
