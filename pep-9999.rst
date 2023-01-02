@@ -1,5 +1,5 @@
 PEP: 9999
-Title: Adding Vulnerability Data for the Simple API for Package Indexes
+Title: Adding Vulnerability Data to the Simple API for Package Indexes
 Author: Dustin Ingram <di@python.org>
 PEP-Delegate: Donald Stufft <donald@stufft.io>
 Status: Draft
