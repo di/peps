@@ -182,14 +182,15 @@ Differences between the OSV schema
 The following are key differences between this specification and the `Open
 Source Vulnerability Schema <https://ossf.github.io/osv-schema/>`__.
 
-Python-specific Prefix must be used
------------------------------------
+Python-specific prefix should be preferred
+------------------------------------------
 
 The OSV schema provides support for multiple vulnerability identifier prefixes,
 to provide support for multiple ecosystems. However, this PEP is only focused
 on the Python ecosystem, and thus requires that the primary vulnerability ID
-begin with the ``PYSEC-`` prefix. All other identifiers with non ``PYSEC-``
-prefixes should be included in the ``aliases`` field.
+begin with the ``PYSEC-`` prefix when an ID with that prefix is available. When
+a ``PYSEC-`` prefixed identifier is available, all other identifiers with non
+``PYSEC-`` prefixes should be included in the ``aliases`` field.
 
 SemVer should not be used
 -------------------------
