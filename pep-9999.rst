@@ -231,7 +231,7 @@ See :pep:`700#is-the-simple-api-replacing-the-warehouse-json-and-xml-rpc-apis`.
 Why not require PEP 440 versions?
 ---------------------------------
 
-See :pep:`700#why-not-require-pep-440-versions>`.
+See :pep:`700#why-not-require-pep-440-versions`.
 
 Acknowledgements
 ================
